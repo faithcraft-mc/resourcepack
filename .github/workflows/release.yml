@@ -1,0 +1,57 @@
+name: Create release
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - VERSION
+  workflow_dispatch:
+
+env:
+  RP_NAME: FaithCraft-RP
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get resourcepack version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Checking version exists
+        run: |
+          if git show-ref --tags --verify --quiet "refs/tags/${{ env.VERSION }}"; then
+            exit 1
+          fi
+
+      - name: Create ZIP
+        uses: vimtor/action-zip@v1
+        with:
+          files: src/
+          recursive: true
+          dest: ${{ env.RP_NAME }}-${{ env.VERSION }}.zip
+
+      - name: Create a Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          automatic_release_tag: ${{ env.VERSION }}
+          title: Release ${{ env.VERSION }}
+          files: |
+            ${{ env.RP_NAME }}-${{ env.VERSION }}.zip
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          omitBody: true
+          files: ${{ env.RP_NAME }}-${{ env.VERSION }}.zip
+
